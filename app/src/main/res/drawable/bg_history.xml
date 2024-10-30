@@ -1,0 +1,19 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Shadow layer (elevation effect) -->
+    <item android:left="2dp" android:top="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#B0BEC5" /> <!-- Warna shadow -->
+            <corners android:radius="12dp" />
+        </shape>
+    </item>
+
+    <!-- Background layer -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#DEDEDE" /> <!-- Warna putih -->
+            <corners android:radius="12dp" />
+            <stroke android:width="1dp" android:color="#DDDDDD" /> <!-- Border tipis -->
+        </shape>
+    </item>
+</layer-list>
