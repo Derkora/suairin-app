@@ -1,162 +1,124 @@
 package com.example.sauairinapp;
 
+import android.Manifest;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
+import android.os.Environment;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ImageButton micButton, historyTitle;
-    private TextView recordingTime, dbReading;
-    private MediaRecorder mediaRecorder;
-    private Handler handler;
-    private Runnable timerRunnable;
-    private long startTime = 0L;
-    private boolean isMicActive = false;
-    private boolean isRecording = false;
-    private String audioFilePath;
-
-    private SQLiteDatabase db;
     private static final String DB_NAME = "audio_records";
     private static final String TABLE_NAME = "recordings";
+    private SQLiteDatabase db;
+
+    private MediaRecorder mediaRecorder;
+    private String filePath;
+    private boolean isRecording = false;
+
+    private ImageButton recordButton, historyButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        micButton = findViewById(R.id.micButton);
-        historyTitle = findViewById(R.id.historyTitle);
-        recordingTime = findViewById(R.id.recordingTime);
-        dbReading = findViewById(R.id.dbReading);
-
-        mediaRecorder = new MediaRecorder();
-        handler = new Handler();
+        // Request permissions
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+        }, 1);
 
         // Initialize database
         db = openOrCreateDatabase(DB_NAME, MODE_PRIVATE, null);
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, date TEXT, path TEXT)");
+        createTable();
 
-        setupMicButton();
-        setupHistoryButton();
-    }
+        recordButton = findViewById(R.id.recordButton);
+        historyButton = findViewById(R.id.historyButton);
 
-    private void setupMicButton() {
-        micButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isMicActive) {
-                    // Jika mic sedang aktif, hentikan perekaman
-                    stopRecording();
-                    micButton.setImageResource(R.drawable.ic_mic_default); // Ubah ikon mic menjadi default
-                } else {
-                    // Jika mic tidak aktif, mulai perekaman
-                    startRecording();
-                    micButton.setImageResource(R.drawable.ic_mic_active); // Ubah ikon mic menjadi aktif
-                }
-                isMicActive = !isMicActive; // Toggle status
+        // Record button functionality
+        recordButton.setOnClickListener(v -> {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
             }
         });
-    }
 
-    private void setupHistoryButton() {
-        historyTitle.setOnClickListener(v -> {
+        // History button functionality
+        historyButton.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
             startActivity(intent);
         });
     }
 
-    private void startRecording() {
-        try {
-            File audioFile = new File(getFilesDir(), "recording_" + System.currentTimeMillis() + ".3gp");
-            audioFilePath = audioFile.getAbsolutePath();
+    private void createTable() {
+        String createTableQuery = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "name TEXT, " +
+                "date TEXT, " +
+                "path TEXT)";
+        db.execSQL(createTableQuery);
+    }
 
-            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-            mediaRecorder.setOutputFile(audioFilePath);
-            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+    private void startRecording() {
+        File directory = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Recordings");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        filePath = directory.getAbsolutePath() + "/REC_" + timeStamp + ".mp3";
+
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setOutputFile(filePath);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+
+        try {
             mediaRecorder.prepare();
             mediaRecorder.start();
-
             isRecording = true;
-            startTimer(); // Mulai timer untuk menunjukkan waktu perekaman
-            startDbMeter(); // Mulai menunjukkan pembacaan dB
-        } catch (Exception e) {
-            Log.e("Recorder", "Failed to start recording", e);
+            recordButton.setImageResource(R.drawable.ic_mic_pause);
+            Toast.makeText(this, "Recording started...", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Recording failed!", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void stopRecording() {
-        try {
-            if (isRecording) {
-                mediaRecorder.stop();
-                mediaRecorder.reset();
+        mediaRecorder.stop();
+        mediaRecorder.release();
+        mediaRecorder = null;
+        isRecording = false;
+        recordButton.setImageResource(R.drawable.ic_mic_default);
 
-                isRecording = false;
-                stopTimer(); // Hentikan timer
-                stopDbMeter(); // Hentikan pembacaan dB
+        // Save recording to database
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        ContentValues values = new ContentValues();
+        values.put("name", "Recording " + timeStamp);
+        values.put("date", timeStamp);
+        values.put("path", filePath);
+        db.insert(TABLE_NAME, null, values);
 
-                // Simpan rekaman ke SQLite
-                ContentValues values = new ContentValues();
-                values.put("name", "Recording " + System.currentTimeMillis());
-                values.put("date", android.text.format.DateFormat.format("dd MMM yyyy HH:mm", System.currentTimeMillis()).toString());
-                values.put("path", audioFilePath);
-                db.insert(TABLE_NAME, null, values);
-            }
-        } catch (Exception e) {
-            Log.e("Recorder", "Failed to stop recording", e);
-        }
-    }
-
-    private void startTimer() {
-        startTime = System.currentTimeMillis();
-        timerRunnable = new Runnable() {
-            @Override
-            public void run() {
-                long elapsed = System.currentTimeMillis() - startTime;
-                int seconds = (int) (elapsed / 1000) % 60;
-                int minutes = (int) (elapsed / (1000 * 60)) % 60;
-                int hours = (int) (elapsed / (1000 * 60 * 60));
-                recordingTime.setText(String.format("%02d:%02d:%02d", hours, minutes, seconds));
-                handler.postDelayed(this, 1000);
-            }
-        };
-        handler.post(timerRunnable);
-    }
-
-    private void stopTimer() {
-        if (timerRunnable != null) {
-            handler.removeCallbacks(timerRunnable);
-        }
-    }
-
-    private void startDbMeter() {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (isRecording) {
-                    // Ini simulasi dB. Dalam implementasi nyata, gunakan AudioRecord untuk membaca amplitudo
-                    int simulatedDb = (int) (Math.random() * 100); // Hanya untuk simulasi
-                    dbReading.setText(simulatedDb + "dB");
-                    handler.postDelayed(this, 500); // Perbarui setiap 500ms
-                }
-            }
-        });
-    }
-
-    private void stopDbMeter() {
-        handler.removeCallbacksAndMessages(null);
-        dbReading.setText("0dB"); // Reset dB ke 0
+        Toast.makeText(this, "Recording saved.", Toast.LENGTH_SHORT).show();
     }
 }

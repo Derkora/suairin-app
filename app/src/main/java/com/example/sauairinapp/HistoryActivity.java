@@ -8,6 +8,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.sauairinapp.adapter.RecordingAdapter;
+import com.example.sauairinapp.item.Recording;
+
 import java.util.ArrayList;
 import java.util.List;
 

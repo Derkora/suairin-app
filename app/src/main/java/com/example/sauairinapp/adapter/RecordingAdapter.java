@@ -1,4 +1,4 @@
-package com.example.sauairinapp;
+package com.example.sauairinapp.adapter;
 
 import android.media.MediaPlayer;
 import android.view.LayoutInflater;
@@ -9,6 +9,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.sauairinapp.R;
+import com.example.sauairinapp.item.Recording;
 
 import java.io.IOException;
 import java.util.List;
@@ -40,6 +43,12 @@ public class RecordingAdapter extends RecyclerView.Adapter<RecordingAdapter.View
                 mediaPlayer.setDataSource(recording.getPath());
                 mediaPlayer.prepare();
                 mediaPlayer.start();
+                holder.playButton.setImageResource(R.drawable.ic_mic_pause);
+
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    holder.playButton.setImageResource(R.drawable.ic_play);
+                    mediaPlayer.release();
+                });
             } catch (IOException e) {
                 e.printStackTrace();
             }
