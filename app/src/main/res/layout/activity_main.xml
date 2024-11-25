@@ -9,69 +9,46 @@
     tools:context=".MainActivity">
 
     <!-- Profile Icon -->
-    <ImageView
+    <ImageButton
         android:id="@+id/profileIcon"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:background="@drawable/bg_merah"
+        android:background="@drawable/bg_purple_circle"
+        android:backgroundTint="@null"
         android:src="@drawable/ic_profile"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Settings Icon -->
-    <ImageView
+    <ImageButton
         android:id="@+id/settingsIcon"
         android:layout_width="40dp"
         android:layout_height="40dp"
+        android:background="@color/white"
         android:src="@drawable/ic_settings"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Title Text -->
-    <TextView
-        android:id="@+id/titleText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Kualitas Suara"
-        android:textSize="20sp"
-        android:textColor="#000000"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/profileIcon"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
-
-    <!-- Custom Half-Circle Progress View -->
-    <com.example.sauairinapp.view.HalfCircleProgressView
-        android:id="@+id/halfCircleProgress"
-        android:layout_width="220dp"
-        android:layout_height="110dp"
-        android:background="#F3F3F3"
-        app:layout_constraintTop_toBottomOf="@id/titleText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp" />
 
     <!-- dB Reading Text -->
     <TextView
         android:id="@+id/dbReading"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="10 dB"
-        android:textSize="24sp"
-        android:textColor="#000000"
+        android:text="0dB"
+        android:textSize="64sp"
+        android:textColor="@color/black"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/halfCircleProgress"
+        app:layout_constraintTop_toBottomOf="@id/profileIcon"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="140dp" />
 
     <!-- Breath Status Text -->
     <TextView
         android:id="@+id/breathStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Pernapasan normal"
+        android:text="Percakapan normal \ndan suara latar musik"
         android:textSize="16sp"
         android:textColor="#777777"
         app:layout_constraintTop_toBottomOf="@id/dbReading"
@@ -80,39 +57,50 @@
         android:layout_marginTop="4dp" />
 
     <!-- History Title -->
-    <TextView
+    <ImageButton
         android:id="@+id/historyTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Riwayat Pengecekan Suara:"
-        android:textSize="16sp"
-        android:textColor="#000000"
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:background="@color/white"
+        android:src="@drawable/ic_history"
         app:layout_constraintTop_toBottomOf="@id/breathStatus"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="24dp" />
 
-    <!-- History Container -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewHistory"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_height="250dp"
+        android:orientation="vertical"
+        android:gravity="center"
         app:layout_constraintTop_toBottomOf="@id/historyTitle"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Microphone Button -->
-    <ImageButton
-        android:id="@+id/micButton"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:background="@drawable/bg_merah"
-        android:src="@drawable/ic_mic_default"
-        android:backgroundTint="@null"
-        app:layout_constraintTop_toBottomOf="@id/recyclerViewHistory"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        android:layout_marginTop="40dp">
+
+        <!-- Timer TextView -->
+        <TextView
+            android:id="@+id/recordingTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00:00"
+            android:textColor="@color/black"
+            android:textSize="24sp"
+            android:layout_marginBottom="20dp"/>
+
+        <ImageButton
+            android:id="@+id/micButton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@drawable/bg_white2_circle"
+            android:backgroundTint="@null"
+            android:src="@drawable/ic_mic_default"
+            android:scaleX="2.5"
+            android:scaleY="2.5"
+            android:layout_marginTop="40dp"/>
+
+    </LinearLayout>
+
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

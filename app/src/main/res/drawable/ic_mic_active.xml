@@ -4,18 +4,8 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <item>
-        <shape android:shape="oval">
-
-            <gradient
-                android:startColor="#FF6A00"
-                android:endColor="#FF0080"
-                android:angle="45"/>
-        </shape>
-    </item>
-
     <path
-        android:fillColor="@android:color/white"
+        android:fillColor="@color/purple"
         android:pathData="M6,6h12v12H6z"/>
     
 </vector>
