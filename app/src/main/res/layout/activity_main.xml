@@ -31,10 +31,10 @@
 
     <!-- dB Reading Text -->
     <TextView
-        android:id="@+id/dbReading"
+        android:id="@+id/dbLevelTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="0dB"
+        android:text="dB: 0.00"
         android:textSize="64sp"
         android:textColor="@color/black"
         android:textStyle="bold"
@@ -48,10 +48,11 @@
         android:id="@+id/breathStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Percakapan normal \ndan suara latar musik"
+        android:text="Sounds Good!"
         android:textSize="16sp"
         android:textColor="#777777"
-        app:layout_constraintTop_toBottomOf="@id/dbReading"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/dbLevelTextView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="4dp" />
@@ -73,17 +74,16 @@
         android:layout_height="250dp"
         android:orientation="vertical"
         android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/historyButton"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="40dp">
 
         <!-- Timer TextView -->
-        <TextView
+        <Chronometer
             android:id="@+id/recordingTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="00:00:00"
             android:textColor="@color/black"
             android:textSize="24sp"
             android:layout_marginBottom="20dp"/>
@@ -116,7 +116,7 @@
 
             <!-- Done Button -->
             <ImageButton
-                android:id="@+id/pauseButton"
+                android:id="@+id/doneButton"
                 android:layout_width="50dp"
                 android:layout_height="50dp"
                 android:background="@color/white"

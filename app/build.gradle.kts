@@ -1,3 +1,5 @@
+import org.gradle.accessors.dm.LibrariesForLibs.FfmpegKitLibraryAccessors
+
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -32,12 +34,22 @@ android {
 }
 
 dependencies {
-
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.room.common)
+    implementation(libs.room.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    annotationProcessor(libs.room.compiler)
+
+    // TensorFlow Lite Core Library
+    implementation(libs.tensorflow.lite)
+    implementation(libs.tensorflow.lite.support)
+    implementation(libs.tensorflow.lite.gpu)
+
+    // FFmpeg & lame
+    implementation(libs.mobile.ffmpeg.full)
 }
