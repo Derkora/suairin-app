@@ -31,6 +31,7 @@ import com.example.sauairinapp.db.Converters;
 import com.example.sauairinapp.db.RecordingEntity;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -45,9 +46,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 101;
     private MediaRecorder mediaRecorder;
     private boolean isRecording = false;
-    private boolean isPaused = false;
     private String currentFilePath;
 
+    private long timeWhenPaused = 0;
     private Chronometer chronometer;
     private TextView dbLevelTextView;
 
@@ -152,12 +153,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        currentFilePath = dir.getAbsolutePath() + "/SEG_" + timeStamp + "_" + segmentCount + ".m4a"; // Gunakan ekstensi .m4a
+        currentFilePath = dir.getAbsolutePath() + "/SEG_" + timeStamp + "_" + segmentCount + ".m4a";
 
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4); // Format MPEG_4 sesuai untuk .m4a
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);    // Encoder AAC untuk audio
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mediaRecorder.setAudioEncodingBitRate(128000);
         mediaRecorder.setAudioSamplingRate(44100);
         mediaRecorder.setOutputFile(currentFilePath);
@@ -166,15 +167,15 @@ public class MainActivity extends AppCompatActivity {
             mediaRecorder.prepare();
             mediaRecorder.start();
             isRecording = true;
-            isPaused = false;
 
+            // Mulai chronometer kembali dari waktu yang tersimpan
             if (segmentCount == 0) {
                 chronometer.setBase(SystemClock.elapsedRealtime());
             } else {
-                long pausedTime = SystemClock.elapsedRealtime() - chronometer.getBase();
-                chronometer.setBase(SystemClock.elapsedRealtime() - pausedTime);
+                chronometer.setBase(SystemClock.elapsedRealtime() + timeWhenPaused);
             }
             chronometer.start();
+
             startDbLevelUpdates();
             updateUIForRecording();
             Toast.makeText(this, "Recording ...", Toast.LENGTH_SHORT).show();
@@ -190,12 +191,15 @@ public class MainActivity extends AppCompatActivity {
             mediaRecorder.release();
             mediaRecorder = null;
             isRecording = false;
-            isPaused = true;
-            chronometer.stop();
-            handler.removeCallbacks(dbLevelUpdater);
 
             recordingSegments.add(currentFilePath);
             segmentCount++;
+
+            // Hentikan chronometer dan simpan waktu saat dijeda
+            timeWhenPaused = chronometer.getBase() - SystemClock.elapsedRealtime();
+            chronometer.stop();
+
+            handler.removeCallbacks(dbLevelUpdater);
             updateUIForPause();
         }
     }
@@ -216,57 +220,83 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveRecording() {
         if (isRecording) {
-            mediaRecorder.stop();
-            mediaRecorder.release();
-            mediaRecorder = null;
-            isRecording = false;
-            chronometer.stop();
-            handler.removeCallbacks(dbLevelUpdater);
+            pauseRecording();
         }
 
-        if (currentFilePath == null || currentFilePath.isEmpty()) {
+        if (recordingSegments.isEmpty()) {
             Toast.makeText(this, "No recording to save", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String outputFilePath = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/REC_" + timeStamp + ".wav"; // Target file WAV
+        String mergedFilePath = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/MERGED_" + timeStamp + ".m4a";
 
-        // Konversi file dari m4a ke wav
-        convertToWav(currentFilePath, outputFilePath);
+        mergeAudioSegments(recordingSegments, mergedFilePath);
+    }
 
-        // Simpan metadata ke database setelah konversi selesai
+    private void mergeAudioSegments(List<String> segments, String outputFilePath) {
+        String concatInput = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/file_list.txt";
+        try {
+            File fileList = new File(concatInput);
+            FileWriter writer = new FileWriter(fileList);
+            for (String segment : segments) {
+                writer.write("file '" + segment + "'\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Failed to create file list for merging", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] command = new String[]{
+                "-f", "concat",
+                "-safe", "0",
+                "-i", concatInput,
+                "-c", "copy",
+                outputFilePath
+        };
+
+        FFmpeg.executeAsync(command, (executionId, returnCode) -> {
+            if (returnCode == 0) {
+                runOnUiThread(() -> convertToWav(outputFilePath));
+            } else {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Failed to merge audio segments", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void convertToWav(String inputFilePath) {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String outputFilePath = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/REC_" + timeStamp + ".wav";
+
+        String[] command = new String[]{
+                "-i", inputFilePath,
+                "-ac", "2",
+                "-ar", "44100",
+                "-acodec", "pcm_s16le",
+                outputFilePath
+        };
+
+        FFmpeg.executeAsync(command, (executionId, returnCode) -> {
+            if (returnCode == 0) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Recording saved as WAV", Toast.LENGTH_SHORT).show());
+                saveToDatabase(outputFilePath);
+            } else {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Failed to convert to WAV", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void saveToDatabase(String filePath) {
         RecordingEntity recording = new RecordingEntity();
         recording.name = "Recording " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
         recording.date = new Date();
-        recording.path = outputFilePath;
+        recording.path = filePath;
 
         Executors.newSingleThreadExecutor().execute(() -> database.recordingDao().insert(recording));
 
         resetToInitialState();
-    }
-
-    private void convertToWav(String inputFilePath, String outputFilePath) {
-        String[] command = new String[] {
-                "-i", inputFilePath,   // Input file path
-                "-ac", "2",            // Set the number of audio channels (stereo)
-                "-ar", "44100",        // Set the audio sampling rate (44.1kHz)
-                "-acodec", "pcm_s16le",// Set audio codec to PCM signed 16-bit little-endian (WAV format)
-                outputFilePath         // Output file path
-        };
-
-        FFmpeg.executeAsync(command, new ExecuteCallback() {
-            @Override
-            public void apply(long executionId, int returnCode) {
-                if (returnCode == 0) {
-                    // Conversion successful
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "File converted to WAV", Toast.LENGTH_SHORT).show());
-                } else {
-                    // Conversion failed
-                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Failed to convert file", Toast.LENGTH_SHORT).show());
-                }
-            }
-        });
     }
 
     private void startDbLevelUpdates() {
@@ -295,10 +325,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetToInitialState() {
-        recordingSegments.clear();
-        segmentCount = 0;
         chronometer.stop();
         chronometer.setBase(SystemClock.elapsedRealtime());
+        timeWhenPaused = 0; // Reset waktu yang tersimpan
+
+        recordingSegments.clear();
+        segmentCount = 0;
+
         recordButton.setImageResource(R.drawable.ic_mic_default);
         stopButton.setVisibility(View.GONE);
         doneButton.setVisibility(View.GONE);
