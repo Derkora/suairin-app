@@ -17,12 +17,15 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.arthenica.mobileffmpeg.Config;
+import com.arthenica.mobileffmpeg.ExecuteCallback;
+import com.arthenica.mobileffmpeg.FFmpeg;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.arthenica.mobileffmpeg.FFmpeg;
 import com.example.sauairinapp.db.AppDatabase;
 import com.example.sauairinapp.db.Converters;
 import com.example.sauairinapp.db.RecordingEntity;
@@ -243,50 +246,28 @@ public class MainActivity extends AppCompatActivity {
         resetToInitialState();
     }
 
-    private void convertToWav(String inputPath, String outputPath) {
-        String[] cmd = {"-i", inputPath, outputPath};
+    private void convertToWav(String inputFilePath, String outputFilePath) {
+        String[] command = new String[] {
+                "-i", inputFilePath,   // Input file path
+                "-ac", "2",            // Set the number of audio channels (stereo)
+                "-ar", "44100",        // Set the audio sampling rate (44.1kHz)
+                "-acodec", "pcm_s16le",// Set audio codec to PCM signed 16-bit little-endian (WAV format)
+                outputFilePath         // Output file path
+        };
 
-        // Menjalankan konversi menggunakan FFmpeg
-        try {
-            FFmpeg.getInstance(this).execute(cmd, new ExecuteBinaryResponseHandler() {
-                @Override
-                public void onSuccess(String message) {
-                    Log.d("FFmpeg", "Conversion successful: " + message);
-                    // Simpan metadata ke database setelah konversi selesai
-                    RecordingEntity recording = new RecordingEntity();
-                    recording.name = "Recording " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-                    recording.date = new Date();
-                    recording.path = outputPath;
-
-                    // Menyimpan data rekaman ke dalam database
-                    Executors.newSingleThreadExecutor().execute(() -> database.recordingDao().insert(recording));
-                    resetToInitialState();
+        FFmpeg.executeAsync(command, new ExecuteCallback() {
+            @Override
+            public void apply(long executionId, int returnCode) {
+                if (returnCode == 0) {
+                    // Conversion successful
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "File converted to WAV", Toast.LENGTH_SHORT).show());
+                } else {
+                    // Conversion failed
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Failed to convert file", Toast.LENGTH_SHORT).show());
                 }
-
-                @Override
-                public void onFailure(String message) {
-                    Log.e("FFmpeg", "Conversion failed: " + message);
-                    Toast.makeText(MainActivity.this, "Conversion failed", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onProgress(String message) {
-                    Log.d("FFmpeg", "Conversion progress: " + message);
-                }
-
-                @Override
-                public void onFinish() {
-                    super.onFinish();
-                    Log.d("FFmpeg", "Conversion finished");
-                }
-            });
-        } catch (FFmpegCommandAlreadyRunningException e) {
-            Log.e("FFmpeg", "FFmpeg is already running.", e);
-            Toast.makeText(this, "FFmpeg is already running", Toast.LENGTH_SHORT).show();
-        }
+            }
+        });
     }
-
-
 
     private void startDbLevelUpdates() {
         dbLevelUpdater = () -> {

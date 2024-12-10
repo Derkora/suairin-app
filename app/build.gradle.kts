@@ -47,7 +47,7 @@ dependencies {
     annotationProcessor(libs.room.compiler)
 
     //ffmpeg
-    implementation(libs.ffmpeg.kit.full)
+    implementation(libs.mobile.ffmpeg.full)
 
     // http
     implementation(libs.okhttp)

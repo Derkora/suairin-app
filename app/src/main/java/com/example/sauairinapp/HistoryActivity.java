@@ -3,6 +3,7 @@ package com.example.sauairinapp;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
@@ -234,8 +235,20 @@ public class HistoryActivity extends AppCompatActivity {
 
     private void enhanceRecording(RecordingEntity recording) {
         String filePath = recording.path;
-        String fileName = recording.name;
-        String enhancedFileName = "enhanced_" + fileName;
+        String originalFileName = recording.name;
+
+        // Format nama file enhanced dengan "Enhanced_" di depan nama file asli
+        String enhancedFileName = "Enhanced_" + originalFileName;
+
+        // Tentukan direktori tujuan untuk menyimpan file yang ditingkatkan (langsung di /Music)
+        File musicDir = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "");
+        if (!musicDir.exists()) {
+            musicDir.mkdirs(); // Membuat folder Music jika belum ada
+        }
+
+        // Menggunakan sistem waktu untuk nama file, disimpan langsung di direktori /Music
+        String timeStampedFileName = "REC_" + System.currentTimeMillis() + ".wav";
+        File enhancedFile = new File(musicDir, timeStampedFileName);
 
         Log.d("HistoryActivity", "Enhancing file: " + filePath);
 
@@ -264,15 +277,16 @@ public class HistoryActivity extends AppCompatActivity {
                 Response response = client.newCall(request).execute();
                 try {
                     if (response.isSuccessful() && response.body() != null) {
-                        File enhancedFile = new File(getFilesDir(), enhancedFileName);
+                        // Menyimpan file hasil enhancement dengan nama yang ditentukan
                         try (BufferedSink sink = Okio.buffer(Okio.sink(enhancedFile))) {
                             sink.writeAll(response.body().source());
                         }
 
+                        // Setelah file selesai diproses, tambahkan rekaman enhanced ke database
                         runOnUiThread(() -> {
                             RecordingEntity enhancedRecording = new RecordingEntity(
                                     enhancedFile.getAbsolutePath(),
-                                    enhancedFileName,
+                                    enhancedFileName, // Nama file enhanced tetap yang original
                                     System.currentTimeMillis()
                             );
                             viewModel.addRecording(enhancedRecording);
@@ -294,6 +308,7 @@ public class HistoryActivity extends AppCompatActivity {
             }
         }).start();
     }
+
 
     private void showRenameDialog(RecordingEntity recording) {
         EditText input = new EditText(this);
