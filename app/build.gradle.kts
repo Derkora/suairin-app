@@ -1,4 +1,4 @@
-import org.gradle.accessors.dm.LibrariesForLibs.FfmpegKitLibraryAccessors
+import com.android.build.api.dsl.Packaging
 
 plugins {
     alias(libs.plugins.android.application)
@@ -31,6 +31,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
 }
 
 dependencies {
@@ -45,11 +46,12 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     annotationProcessor(libs.room.compiler)
 
-    // TensorFlow Lite Core Library
-    implementation(libs.tensorflow.lite)
-    implementation(libs.tensorflow.lite.support)
-    implementation(libs.tensorflow.lite.gpu)
+    //ffmpeg
+    implementation(libs.ffmpeg.kit.full)
 
-    // FFmpeg & lame
-    implementation(libs.mobile.ffmpeg.full)
+    // http
+    implementation(libs.okhttp)
+
+    // cam
+    implementation(libs.exifinterface)
 }

@@ -22,9 +22,19 @@ import com.example.sauairinapp.adapter.HistoryAdapter;
 import com.example.sauairinapp.db.RecordingEntity;
 import com.example.sauairinapp.viewmodel.HistoryViewModel;
 
+import java.io.File;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okio.BufferedSink;
+import okio.Okio;
 
 public class HistoryActivity extends AppCompatActivity {
 
@@ -128,18 +138,23 @@ public class HistoryActivity extends AppCompatActivity {
         }
     }
 
-
-
-
     private void playRecording(String filePath, String title) {
         try {
+            File file = new File(filePath);
+            if (!file.exists()) {
+                Toast.makeText(this, "Audio file not found", Toast.LENGTH_SHORT).show();
+                Log.e("HistoryActivity", "File not found: " + filePath);
+                return;
+            }
+
+            Log.d("HistoryActivity", "Playing file: " + filePath);
             mediaPlayer.reset();
             mediaPlayer.setDataSource(filePath);
 
-            // Listener untuk mencatat durasi audio sebelum diputar
             mediaPlayer.setOnPreparedListener(mp -> {
                 seekBar.setMax(mediaPlayer.getDuration());
                 mediaPlayer.start();
+                Log.d("HistoryActivity", "Playback started for: " + title);
             });
 
             mediaPlayer.prepare(); // Memulai persiapan audio
@@ -159,6 +174,7 @@ public class HistoryActivity extends AppCompatActivity {
             Toast.makeText(this, "Unable to play the recording", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private void pauseAudio() {
         if (mediaPlayer.isPlaying()) {
@@ -204,15 +220,79 @@ public class HistoryActivity extends AppCompatActivity {
     }
 
     private void showMoreOptions(RecordingEntity recording) {
-        String[] options = {"Rename", "Delete"};
+        String[] options = {"Rename", "Enhance", "Delete"};
         new AlertDialog.Builder(this)
                 .setTitle("Options")
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
                         case 0: showRenameDialog(recording); break;
-                        case 1: viewModel.deleteRecording(recording); break;
+                        case 1: enhanceRecording(recording); break;
+                        case 2: viewModel.deleteRecording(recording); break;
                     }
                 }).show();
+    }
+
+    private void enhanceRecording(RecordingEntity recording) {
+        String filePath = recording.path;
+        String fileName = recording.name;
+        String enhancedFileName = "enhanced_" + fileName;
+
+        Log.d("HistoryActivity", "Enhancing file: " + filePath);
+
+        new Thread(() -> {
+            try {
+                OkHttpClient client = new OkHttpClient.Builder()
+                        .retryOnConnectionFailure(true)
+                        .build();
+
+                File file = new File(filePath);
+                RequestBody fileBody = RequestBody.create(file, MediaType.parse("audio/wav"));
+
+                RequestBody requestBody = new MultipartBody.Builder()
+                        .setType(MultipartBody.FORM)
+                        .addFormDataPart("audio", file.getName(), fileBody)
+                        .build();
+
+                Request request = new Request.Builder()
+                        .url("http://159.65.143.238:5000/enhance-audio")
+                        .post(requestBody)
+                        .build();
+
+                Log.d("HistoryActivity", "File path to upload: " + filePath);
+                Log.d("HistoryActivity", "File exists: " + file.exists());
+
+                Response response = client.newCall(request).execute();
+                try {
+                    if (response.isSuccessful() && response.body() != null) {
+                        File enhancedFile = new File(getFilesDir(), enhancedFileName);
+                        try (BufferedSink sink = Okio.buffer(Okio.sink(enhancedFile))) {
+                            sink.writeAll(response.body().source());
+                        }
+
+                        runOnUiThread(() -> {
+                            RecordingEntity enhancedRecording = new RecordingEntity(
+                                    enhancedFile.getAbsolutePath(),
+                                    enhancedFileName,
+                                    System.currentTimeMillis()
+                            );
+                            viewModel.addRecording(enhancedRecording);
+                            Toast.makeText(this, "Enhanced audio saved", Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
+                        Log.e("HistoryActivity", "Server response: " + response.code() + " " + response.message());
+                        if (response.body() != null) {
+                            Log.e("HistoryActivity", "Response body: " + response.body().string());
+                        }
+                        runOnUiThread(() -> Toast.makeText(this, "Failed to enhance audio", Toast.LENGTH_SHORT).show());
+                    }
+                } finally {
+                    response.close(); // Pastikan response ditutup
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, "Error enhancing audio", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
     }
 
     private void showRenameDialog(RecordingEntity recording) {

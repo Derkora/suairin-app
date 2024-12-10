@@ -3,30 +3,35 @@ package com.example.sauairinapp;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
 
+import android.util.Log;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.arthenica.mobileffmpeg.FFmpeg;
 import com.example.sauairinapp.db.AppDatabase;
+import com.example.sauairinapp.db.Converters;
 import com.example.sauairinapp.db.RecordingEntity;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -34,6 +39,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final int PERMISSION_REQUEST_CODE = 101;
     private MediaRecorder mediaRecorder;
     private boolean isRecording = false;
     private boolean isPaused = false;
@@ -42,7 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private Chronometer chronometer;
     private TextView dbLevelTextView;
 
-    private ImageButton recordButton, stopButton, doneButton, historyButton;
+    private ImageButton recordButton, stopButton, doneButton, historyButton, profileButton;
+    private AppDatabase database;
 
     private List<String> recordingSegments = new ArrayList<>();
     private int segmentCount = 0;
@@ -55,18 +62,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Request permissions
-        ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-        }, 1);
+        // Periksa izin saat aplikasi dimulai
+        if (!checkPermissions()) {
+            requestPermissions();
+        }
 
+        database = AppDatabase.getInstance(this);
+
+        profileButton = findViewById(R.id.profileButton);
         historyButton = findViewById(R.id.historyButton);
         recordButton = findViewById(R.id.recordButton);
         stopButton = findViewById(R.id.stopButton);
         doneButton = findViewById(R.id.doneButton);
         chronometer = findViewById(R.id.recordingTime);
         dbLevelTextView = findViewById(R.id.dbLevelTextView);
+
+        loadProfilePicture();
 
         stopButton.setVisibility(View.GONE);
         doneButton.setVisibility(View.GONE);
@@ -75,21 +86,62 @@ public class MainActivity extends AppCompatActivity {
             if (isRecording) {
                 pauseRecording();
             } else {
-                startRecording(); // Nonaktifkan resume dengan hanya memulai rekaman baru
+                startRecording();
             }
         });
 
         stopButton.setOnClickListener(v -> cancelRecording());
         doneButton.setOnClickListener(v -> saveRecording());
 
+        profileButton.setOnClickListener(v -> {
+            Intent intentProfile = new Intent(MainActivity.this, ProfileActivity.class);
+            startActivity(intentProfile);
+        });
+
         historyButton.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
-            startActivity(intent);
+            Intent intentHistory = new Intent(MainActivity.this, HistoryActivity.class);
+            startActivity(intentHistory);
         });
     }
 
+    // Memeriksa apakah izin yang diperlukan telah diberikan
+    private boolean checkPermissions() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    // Meminta izin jika belum diberikan
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+        }, PERMISSION_REQUEST_CODE);
+    }
+
+    // Menangani hasil permintaan izin
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            boolean allGranted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (!allGranted) {
+                Toast.makeText(this, "Permissions are required to use this app", Toast.LENGTH_SHORT).show();
+                finish(); // Tutup aplikasi jika izin tidak diberikan
+            }
+        }
+    }
+
     private void startRecording() {
-        if (!checkPermissions()) return;
+        if (!checkPermissions()) {
+            requestPermissions();
+            return;
+        }
 
         File dir = new File(getExternalFilesDir(Environment.DIRECTORY_MUSIC), "Recordings");
         if (!dir.exists()) {
@@ -97,12 +149,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        currentFilePath = dir.getAbsolutePath() + "/SEG_" + timeStamp + "_" + segmentCount + ".mp3";
+        currentFilePath = dir.getAbsolutePath() + "/SEG_" + timeStamp + "_" + segmentCount + ".m4a"; // Gunakan ekstensi .m4a
 
         mediaRecorder = new MediaRecorder();
         mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4); // Format MPEG_4 sesuai untuk .m4a
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);    // Encoder AAC untuk audio
         mediaRecorder.setAudioEncodingBitRate(128000);
         mediaRecorder.setAudioSamplingRate(44100);
         mediaRecorder.setOutputFile(currentFilePath);
@@ -139,15 +191,10 @@ public class MainActivity extends AppCompatActivity {
             chronometer.stop();
             handler.removeCallbacks(dbLevelUpdater);
 
-            // Tambahkan file ke daftar segmen
             recordingSegments.add(currentFilePath);
             segmentCount++;
             updateUIForPause();
         }
-    }
-
-    private void resumeRecording() {
-        Toast.makeText(this, "Resume recording is disabled", Toast.LENGTH_SHORT).show();
     }
 
     private void cancelRecording() {
@@ -166,7 +213,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveRecording() {
         if (isRecording) {
-            // Hentikan rekaman jika sedang berlangsung
             mediaRecorder.stop();
             mediaRecorder.release();
             mediaRecorder = null;
@@ -181,58 +227,77 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String outputFilePath = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/REC_" + timeStamp + ".mp3";
+        String outputFilePath = getExternalFilesDir(Environment.DIRECTORY_MUSIC) + "/REC_" + timeStamp + ".wav"; // Target file WAV
 
-        File currentFile = new File(currentFilePath);
-        File outputFile = new File(outputFilePath);
+        // Konversi file dari m4a ke wav
+        convertToWav(currentFilePath, outputFilePath);
 
-        if (!currentFile.exists()) {
-            Toast.makeText(this, "Recording file does not exist", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        // Simpan metadata ke database setelah konversi selesai
+        RecordingEntity recording = new RecordingEntity();
+        recording.name = "Recording " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        recording.date = new Date();
+        recording.path = outputFilePath;
 
-        // Rename or move the recorded file to the final output path
-        if (currentFile.renameTo(outputFile)) {
-            runOnUiThread(() -> {
-                RecordingEntity recording = new RecordingEntity();
-                recording.name = "Recording " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
-                recording.date = new Date();
-                recording.path = outputFilePath;
+        Executors.newSingleThreadExecutor().execute(() -> database.recordingDao().insert(recording));
 
-                AppDatabase db = AppDatabase.getInstance(this);
-                Executors.newSingleThreadExecutor().execute(() -> db.recordingDao().insert(recording));
+        resetToInitialState();
+    }
 
-                Toast.makeText(this, "Recording saved", Toast.LENGTH_SHORT).show();
-                resetToInitialState();
+    private void convertToWav(String inputPath, String outputPath) {
+        String[] cmd = {"-i", inputPath, outputPath};
+
+        // Menjalankan konversi menggunakan FFmpeg
+        try {
+            FFmpeg.getInstance(this).execute(cmd, new ExecuteBinaryResponseHandler() {
+                @Override
+                public void onSuccess(String message) {
+                    Log.d("FFmpeg", "Conversion successful: " + message);
+                    // Simpan metadata ke database setelah konversi selesai
+                    RecordingEntity recording = new RecordingEntity();
+                    recording.name = "Recording " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+                    recording.date = new Date();
+                    recording.path = outputPath;
+
+                    // Menyimpan data rekaman ke dalam database
+                    Executors.newSingleThreadExecutor().execute(() -> database.recordingDao().insert(recording));
+                    resetToInitialState();
+                }
+
+                @Override
+                public void onFailure(String message) {
+                    Log.e("FFmpeg", "Conversion failed: " + message);
+                    Toast.makeText(MainActivity.this, "Conversion failed", Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onProgress(String message) {
+                    Log.d("FFmpeg", "Conversion progress: " + message);
+                }
+
+                @Override
+                public void onFinish() {
+                    super.onFinish();
+                    Log.d("FFmpeg", "Conversion finished");
+                }
             });
-        } else {
-            runOnUiThread(() -> Toast.makeText(this, "Failed to save recording", Toast.LENGTH_SHORT).show());
+        } catch (FFmpegCommandAlreadyRunningException e) {
+            Log.e("FFmpeg", "FFmpeg is already running.", e);
+            Toast.makeText(this, "FFmpeg is already running", Toast.LENGTH_SHORT).show();
         }
     }
+
 
 
     private void startDbLevelUpdates() {
-        dbLevelUpdater = new Runnable() {
-            @Override
-            public void run() {
-                if (isRecording && mediaRecorder != null) {
-                    int maxAmplitude = mediaRecorder.getMaxAmplitude();
-                    double dB = 20 * Math.log10(maxAmplitude == 0 ? 1 : maxAmplitude);
-                    dbLevelTextView.setText(String.format(Locale.getDefault(), "dB: %.2f", dB));
-                    handler.postDelayed(this, 200);
-                }
+        dbLevelUpdater = () -> {
+            if (isRecording && mediaRecorder != null) {
+                int maxAmplitude = mediaRecorder.getMaxAmplitude();
+                double dB = 20 * Math.log10(maxAmplitude == 0 ? 1 : maxAmplitude);
+                dbLevelTextView.setText(String.format(Locale.getDefault(), "dB: %.2f", dB));
+                handler.postDelayed(dbLevelUpdater, 200);
             }
         };
         handler.post(dbLevelUpdater);
-    }
-
-    private boolean checkPermissions() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Permissions not granted", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-        return true;
     }
 
     private void updateUIForRecording() {
@@ -258,5 +323,15 @@ public class MainActivity extends AppCompatActivity {
         doneButton.setVisibility(View.GONE);
         dbLevelTextView.setText("dB: 0.00");
         currentFilePath = null;
+    }
+
+    private void loadProfilePicture() {
+        new Thread(() -> {
+            String base64Image = database.profilePictureDao().getLastProfilePicture();
+            if (base64Image != null) {
+                Bitmap bitmap = Converters.base64ToBitmap(base64Image);
+                runOnUiThread(() -> profileButton.setImageBitmap(bitmap));
+            }
+        }).start();
     }
 }

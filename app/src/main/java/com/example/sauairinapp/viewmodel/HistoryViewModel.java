@@ -34,4 +34,8 @@ public class HistoryViewModel extends AndroidViewModel {
         new Thread(() -> db.recordingDao().update(recording)).start();
     }
 
+    public void addRecording(RecordingEntity recording) {
+        new Thread(() -> db.recordingDao().insert(recording)).start();
+    }
+
 }
