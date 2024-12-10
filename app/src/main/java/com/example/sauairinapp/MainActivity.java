@@ -10,21 +10,23 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
 
-import android.util.Log;
 import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.arthenica.mobileffmpeg.Config;
-import com.arthenica.mobileffmpeg.ExecuteCallback;
 import com.arthenica.mobileffmpeg.FFmpeg;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 import com.example.sauairinapp.db.AppDatabase;
 import com.example.sauairinapp.db.Converters;
@@ -35,7 +37,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -57,6 +58,11 @@ public class MainActivity extends AppCompatActivity {
 
     private List<String> recordingSegments = new ArrayList<>();
     private int segmentCount = 0;
+
+    private SensorManager sensorManager;
+    private Sensor gyroSensor;
+    private SensorEventListener gyroListener;
+    private static final float SHAKE_THRESHOLD = 2.5f;
 
     private Handler handler = new Handler();
     private Runnable dbLevelUpdater;
@@ -106,6 +112,49 @@ public class MainActivity extends AppCompatActivity {
             Intent intentHistory = new Intent(MainActivity.this, HistoryActivity.class);
             startActivity(intentHistory);
         });
+
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
+        if (gyroSensor != null) {
+            gyroListener = new SensorEventListener() {
+                @Override
+                public void onSensorChanged(SensorEvent event) {
+                    float angularVelocity = (float) Math.sqrt(
+                            Math.pow(event.values[0], 2) +
+                                    Math.pow(event.values[1], 2) +
+                                    Math.pow(event.values[2], 2)
+                    );
+
+                    if (angularVelocity > SHAKE_THRESHOLD && isRecording) {
+                        pauseRecording();
+                        Toast.makeText(MainActivity.this, "Recording paused due to shake", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onAccuracyChanged(Sensor sensor, int accuracy) {
+                    // Tidak digunakan
+                }
+            };
+        }
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (gyroSensor != null) {
+            sensorManager.registerListener(gyroListener, gyroSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (gyroSensor != null) {
+            sensorManager.unregisterListener(gyroListener);
+        }
     }
 
     // Memeriksa apakah izin yang diperlukan telah diberikan
