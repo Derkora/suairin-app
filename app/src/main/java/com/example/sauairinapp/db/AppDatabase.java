@@ -27,13 +27,13 @@ public abstract class AppDatabase extends RoomDatabase {
                     .fallbackToDestructiveMigration()
                     .build();
 
-            // Menjalankan clearAllTables di background thread
-            Executors.newSingleThreadExecutor().execute(new Runnable() {
-                @Override
-                public void run() {
-                    instance.clearAllTables();
-                }
-            });
+            // keperluan bersih-bersih
+//            Executors.newSingleThreadExecutor().execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    instance.clearAllTables();
+//                }
+//            });
         }
         return instance;
     }

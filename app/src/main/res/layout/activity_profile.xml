@@ -16,7 +16,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
-        android:id="@+id/historyHeader"
+        android:id="@+id/profileHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Profile"
@@ -30,7 +30,7 @@
 
     <!-- Settings Icon -->
     <ImageButton
-        android:id="@+id/settingsIcon"
+        android:id="@+id/settingsButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="@color/transparent"
@@ -54,7 +54,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <LinearLayout
@@ -72,17 +72,82 @@
                     android:backgroundTint="@null"
                     android:src="@drawable/ic_profile" />
 
-                <TextView
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/username"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="16dp"
+                        android:text="Steven Figo"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black" />
+
+                    <TextView
+                        android:id="@+id/email"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginLeft="16dp"
+                        android:text="stevenfigo@example.com"
+                        android:textSize="14sp"
+                        android:textColor="@color/gray" />
+
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/editProfileButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+
                     android:layout_marginLeft="16dp"
-                    android:text="Steven Figo"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/black" />
+                    android:text="Edit Profile"
+                    android:textColor="@color/white"
+                    android:src="@drawable/ic_edit"
+                    android:background="@color/transparent" />
 
             </LinearLayout>
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="16dp"
+                android:background="@color/lightGray" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="8dp"
+                    android:text="Settings"
+                    android:textSize="16sp"
+                    android:textColor="@color/black" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="8dp"
+                    android:text="Privacy Policy"
+                    android:textSize="16sp"
+                    android:textColor="@color/black" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginVertical="8dp"
+                    android:text="Logout"
+                    android:textSize="16sp"
+                    android:textColor="@color/red" />
+
+            </LinearLayout>
         </LinearLayout>
 
     </ScrollView>

@@ -41,7 +41,7 @@ public class HistoryActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private HistoryViewModel viewModel;
     private MediaPlayer mediaPlayer;
-    private ImageButton playPauseButton, backButton;
+    private ImageButton playPauseButton, backButton, settingsButton;
     private SeekBar seekBar;
     private TextView currentTitle, playbackTime;
     private boolean isPlaying = false;
@@ -56,6 +56,7 @@ public class HistoryActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         playPauseButton = findViewById(R.id.playButton);
         backButton = findViewById(R.id.backButton);
+        settingsButton = findViewById(R.id.settingsButton);
         currentTitle = findViewById(R.id.audioName);
         playbackTime = findViewById(R.id.playbackTime);
         seekBar = findViewById(R.id.seekBar);
@@ -75,6 +76,12 @@ public class HistoryActivity extends AppCompatActivity {
 
         // Tombol back
         backButton.setOnClickListener(v -> navigateToMain());
+
+        // Tombol settings
+        settingsButton.setOnClickListener(v -> {
+            Intent intentSettings = new Intent(HistoryActivity.this, SettingsActivity.class);
+            startActivity(intentSettings);
+        });
 
         // Atur interaksi pengguna dengan SeekBar
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {

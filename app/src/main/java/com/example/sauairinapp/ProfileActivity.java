@@ -35,7 +35,7 @@ public class ProfileActivity extends AppCompatActivity {
     private Uri photoUri;
     private File photoFile;
 
-    private ImageButton profileIcon, backButton;;
+    private ImageButton profileIcon, backButton, settingsButton;
     private AppDatabase database;
 
     @Override
@@ -45,6 +45,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         backButton = findViewById(R.id.backButton);
         profileIcon = findViewById(R.id.profileIcon);
+        settingsButton = findViewById(R.id.settingsButton);
 
         database = AppDatabase.getInstance(this);
 
@@ -62,6 +63,12 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Tombol back
         backButton.setOnClickListener(v -> navigateToMain());
+
+        // Tombol settings
+        settingsButton.setOnClickListener(v -> {
+            Intent intentSettings = new Intent(ProfileActivity.this, SettingsActivity.class);
+            startActivity(intentSettings);
+        });
     }
 
     private void openCamera() {

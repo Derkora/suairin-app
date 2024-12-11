@@ -30,7 +30,7 @@
 
     <!-- Settings Icon -->
     <ImageButton
-        android:id="@+id/settingsIcon"
+        android:id="@+id/settingsButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="@color/transparent"

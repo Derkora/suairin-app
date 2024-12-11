@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private Chronometer chronometer;
     private TextView dbLevelTextView;
 
-    private ImageButton recordButton, stopButton, doneButton, historyButton, profileButton;
+    private ImageButton recordButton, stopButton, doneButton, historyButton, profileButton, settingsButton;
     private AppDatabase database;
 
     private List<String> recordingSegments = new ArrayList<>();
@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
         profileButton = findViewById(R.id.profileButton);
         historyButton = findViewById(R.id.historyButton);
+        settingsButton = findViewById(R.id.settingsButton);
         recordButton = findViewById(R.id.recordButton);
         stopButton = findViewById(R.id.stopButton);
         doneButton = findViewById(R.id.doneButton);
@@ -111,6 +112,11 @@ public class MainActivity extends AppCompatActivity {
         historyButton.setOnClickListener(v -> {
             Intent intentHistory = new Intent(MainActivity.this, HistoryActivity.class);
             startActivity(intentHistory);
+        });
+
+        settingsButton.setOnClickListener(v -> {
+            Intent intentSettings = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(intentSettings);
         });
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
