@@ -28,6 +28,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Settings Icon -->
+    <ImageButton
+        android:id="@+id/settingsIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@color/transparent"
+        android:src="@drawable/ic_settings"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <View
         android:id="@+id/line"
         android:layout_width="match_parent"
@@ -100,7 +110,7 @@
                     android:id="@+id/playbackTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="00:45 / 03:30"
+                    android:text="00:00 / 00:00"
                     android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>

@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         chronometer = findViewById(R.id.recordingTime);
         dbLevelTextView = findViewById(R.id.dbLevelTextView);
 
-        loadProfilePicture();
+        loadProfilePictureRealtime();
 
         stopButton.setVisibility(View.GONE);
         doneButton.setVisibility(View.GONE);
@@ -388,13 +388,13 @@ public class MainActivity extends AppCompatActivity {
         currentFilePath = null;
     }
 
-    private void loadProfilePicture() {
-        new Thread(() -> {
-            String base64Image = database.profilePictureDao().getLastProfilePicture();
+    private void loadProfilePictureRealtime() {
+        database.profilePictureDao().getLastProfilePicture().observe(this, base64Image -> {
             if (base64Image != null) {
                 Bitmap bitmap = Converters.base64ToBitmap(base64Image);
-                runOnUiThread(() -> profileButton.setImageBitmap(bitmap));
+                profileButton.setImageBitmap(bitmap);
             }
-        }).start();
+        });
     }
+
 }

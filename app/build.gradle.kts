@@ -54,4 +54,8 @@ dependencies {
 
     // cam
     implementation(libs.exifinterface)
+
+    //lifecycle
+    implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.lifecycle.livedata.ktx)
 }
